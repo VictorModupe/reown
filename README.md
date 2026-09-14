@@ -68,9 +68,10 @@ Create `mobile/.env`:
 ```env
 EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 EXPO_PUBLIC_FLUTTERWAVE_PUBLIC_KEY=your_flutterwave_public_key
+EXPO_PUBLIC_API_URL=http://localhost:3000/api
 ```
 
-The mobile client currently uses `http://localhost:3000/api` by default in `mobile/lib/api.ts`. On a physical device, replace it with a backend URL reachable from that device.
+Set `EXPO_PUBLIC_API_URL` to a backend URL reachable from the device. `localhost` works only from a local simulator or emulator. For EAS builds, configure this variable in the selected EAS environment before building; the previous Sevalla URL is currently unavailable.
 
 ## Running Locally
 

@@ -34,7 +34,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/auth-image.png",
+          "image": "./assets/images/fou-wordmark-white.png",
           "resizeMode": "cover",
           "backgroundColor": "#4F2B50",
           "dark": {

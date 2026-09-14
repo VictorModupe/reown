@@ -1,3 +1,4 @@
+//C:\Users\USER\Downloads\reown-app\reown\mobile\hooks\useSocialAuth.ts
 import { useSSO } from "@clerk/clerk-expo";
 import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
@@ -25,32 +26,41 @@ function useSocialAuth() {
   }, []);
 
   const handleSocialAuth = useCallback(async (strategy: SSOStrategy, role: UserRole) => {
-    setLoadingStrategy(strategy);
+  setLoadingStrategy(strategy);
 
-    try {
-      // Creates a reliable redirect URI matching your app's deep linking configuration
-      const redirectUrl = makeRedirectUri({
-        scheme: "reown",
-        path: "oauth-native-callback",
-      });
+  try {
+    const redirectUrl = makeRedirectUri({
+      scheme: "reown",
+      path: "oauth-native-callback",
+    });
 
-      const { createdSessionId, setActive } = await startSSOFlow({ 
-        strategy, 
-        redirectUrl,
-        unsafeMetadata: { role },
-      });
+    const { createdSessionId, setActive, signIn, signUp } = await startSSOFlow({
+      strategy,
+      redirectUrl,
+      unsafeMetadata: { role },
+    });
 
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId });
-      }
-    } catch (error) {
-      console.error("💥 Error in social auth:", error);
-      const provider = strategy === "oauth_google" ? "Google" : "Apple";
-      Alert.alert("Authentication Failed", `Could not sign in with ${provider}. Please try again.`);
-    } finally {
-      setLoadingStrategy(null);
+    if (createdSessionId && setActive) {
+      await setActive({ session: createdSessionId });
+      return;
     }
-  }, [startSSOFlow]);
+
+    const pendingStatus = signIn?.status ?? signUp?.status;
+    if (pendingStatus) {
+      console.warn("SSO flow requires an additional step:", pendingStatus);
+      Alert.alert(
+        "Almost there",
+        "Additional verification is needed to finish signing in. Please complete the remaining step."
+      );
+    }
+  } catch (error) {
+    console.error("💥 Error in social auth:", error);
+    const provider = strategy === "oauth_google" ? "Google" : "Apple";
+    Alert.alert("Authentication Failed", `Could not sign in with ${provider}. Please try again.`);
+  } finally {
+    setLoadingStrategy(null);
+  }
+}, [startSSOFlow]);
 
   return { loadingStrategy, handleSocialAuth };
 }

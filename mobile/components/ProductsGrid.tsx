@@ -12,14 +12,16 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
+import axios from "axios";
 
 interface ProductsGridProps {
   isLoading: boolean;
   isError: boolean;
   products: Product[];
+  error: unknown;
 }
 
-const ProductsGrid = ({ products, isLoading, isError }: ProductsGridProps) => {
+const ProductsGrid = ({ products, isLoading, isError, error }: ProductsGridProps) => {
   const { isInWishlist, toggleWishlist, isAddingToWishlist, isRemovingFromWishlist } =
     useWishlist();
 
@@ -119,7 +121,11 @@ const ProductsGrid = ({ products, isLoading, isError }: ProductsGridProps) => {
       <View className="py-20 items-center justify-center">
         <Ionicons name="alert-circle-outline" size={48} color="#FF6B6B" />
         <Text className="text-text-primary font-semibold mt-4">Failed to load products</Text>
-        <Text className="text-text-secondary text-sm mt-2">Please try again later</Text>
+        <Text className="text-text-secondary text-sm mt-2 text-center px-8">
+          {axios.isAxiosError(error)
+            ? error.response?.data?.message || error.message
+            : "Please check your API URL and try again"}
+        </Text>
       </View>
     );
   }

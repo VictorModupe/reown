@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/lib/api";
 import { Cart } from "@/types";
+import { useAuth } from "@clerk/clerk-expo";
 
 const useCart = () => {
   const api = useApi();
+  const { isSignedIn } = useAuth();
   const queryClient = useQueryClient();
 
   const {
@@ -16,6 +18,7 @@ const useCart = () => {
       const { data } = await api.get<{ cart: Cart }>("/cart");
       return data.cart;
     },
+    enabled: isSignedIn,
   });
 
   const addToCartMutation = useMutation({

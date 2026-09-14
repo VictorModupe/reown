@@ -1,12 +1,9 @@
+//C:\Users\USER\Downloads\reown-app\reown\mobile\lib\api.ts
 import { useAuth } from "@clerk/clerk-expo";
 import axios from "axios";
 import { useEffect } from "react";
 
-// localhost will work in simulator
-const API_URL = "http://localhost:3000/api";
-
-// prod url will work in your physical device
-// const API_URL = "https://expo-ecommerce-th4ln.sevalla.app/api"
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:3000/api";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -14,6 +11,33 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+
+const loggedRequests = new WeakSet<object>();
+
+api.interceptors.response.use(
+  (response) => {
+    const config = response.config as typeof response.config & { __startedAt?: number };
+    const durationMs = config.__startedAt ? Date.now() - config.__startedAt : undefined;
+    console.log("[api:success]", {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      status: response.status,
+      durationMs,
+    });
+    return response;
+  },
+  (error) => {
+    const config = error.config as (typeof error.config & { __startedAt?: number }) | undefined;
+    console.error("[api:error]", {
+      method: config?.method?.toUpperCase(),
+      url: config?.url,
+      status: error.response?.status,
+      message: error.message,
+      durationMs: config?.__startedAt ? Date.now() - config.__startedAt : undefined,
+    });
+    return Promise.reject(error);
+  }
+);
 
 export const useApi = () => {
   const { getToken } = useAuth();
@@ -23,7 +47,18 @@ export const useApi = () => {
       const token = await getToken();
 
       if (token) {
+        config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      if (!loggedRequests.has(config)) {
+        const trackedConfig = config as typeof config & { __startedAt?: number };
+        trackedConfig.__startedAt = Date.now();
+        loggedRequests.add(config);
+        console.log("[api:start]", {
+          method: config.method?.toUpperCase(),
+          url: config.url,
+        });
       }
 
       return config;

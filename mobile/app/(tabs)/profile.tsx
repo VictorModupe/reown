@@ -67,7 +67,7 @@ const ProfileScreen = () => {
             <TouchableOpacity
               key={item.id}
               className="bg-surface rounded-2xl p-6 items-center justify-center"
-              style={{ width: "48%" }}
+              style={{ width: "49%" }}
               activeOpacity={0.7}
               onPress={() => handleMenuPress(item.action)}
             >

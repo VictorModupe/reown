@@ -1,10 +1,11 @@
+//C:\Users\USER\Downloads\reown-app\reown\mobile\app\(auth)\index.tsx
 import useSocialAuth from "@/hooks/useSocialAuth";
-import { useSignIn, useSignUp } from "@clerk/clerk-expo";
+import { useAuth, useSessionList, useSignIn, useSignUp } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
+// import { router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ImageBackground,
   KeyboardAvoidingView,
@@ -15,6 +16,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Toast from "react-native-toast-message";
 
 type AuthMode = "signIn" | "signUp" | "forgot" | "verifySignUp" | "verifyReset" | "resetPassword";
 type UserRole = "customer" | "vendor";
@@ -22,10 +24,29 @@ type UserRole = "customer" | "vendor";
 const getErrorMessage = (error: any) =>
   error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || "Something went wrong. Please try again.";
 
+const isAlreadySignedInError = (error: any) => {
+  const message = getErrorMessage(error).toLowerCase();
+  return error?.errors?.some((item: any) => item.code === "session_exists" || item.code === "already_signed_in") || message.includes("already signed in");
+};
+
+const showToast = (type: "success" | "error", text1: string, text2: string) =>
+  Toast.show({ type, text1, text2 });
+
+const getSignupRequirementMessage = (result: any) => {
+  const missingFields = result.missingFields?.join(", ");
+  const unverifiedFields = result.unverifiedFields?.join(", ");
+
+  if (unverifiedFields) return `Still waiting to verify: ${unverifiedFields}.`;
+  if (missingFields) return `Clerk still needs: ${missingFields}.`;
+  return "Clerk still requires another account step. Check the Clerk sign-up settings.";
+};
+
 const AuthScreen = () => {
   const { loadingStrategy, handleSocialAuth } = useSocialAuth();
-  const { isLoaded: isSignInLoaded, signIn, setActive } = useSignIn();
-  const { isLoaded: isSignUpLoaded, signUp } = useSignUp();
+  const { isSignedIn } = useAuth();
+  const { isLoaded: isSessionListLoaded, sessions } = useSessionList();
+  const { isLoaded: isSignInLoaded, signIn, setActive: setSignInActive } = useSignIn();
+  const { isLoaded: isSignUpLoaded, signUp, setActive: setSignUpActive } = useSignUp();
   const [mode, setMode] = useState<AuthMode>("signIn");
   const [role, setRole] = useState<UserRole>("customer");
   const [email, setEmail] = useState("");
@@ -40,29 +61,50 @@ const AuthScreen = () => {
     setPassword("");
   };
 
-  const finishSession = async (sessionId?: string | null) => {
-    if (sessionId && setActive) await setActive({ session: sessionId });
+  const finishSession = async (sessionId: string | null | undefined, activate: typeof setSignInActive) => {
+    if (sessionId && activate) await activate({ session: sessionId });
   };
 
+  const activateExistingSession = async () => {
+  const availableSessions = sessions ?? [];
+  const existingSession = availableSessions.find((session) => session.status === "active") || availableSessions[0];
+  if (!isSessionListLoaded || !existingSession) return false;
+  await finishSession(existingSession.id, setSignInActive);
+  return true; // no manual navigation — layout handles it
+};
+
   const handleSignIn = async () => {
-    if (!isSignInLoaded || !email.trim() || !password) {
-      Alert.alert("Missing details", "Enter your email and password.");
+  // drop the `if (isSignedIn) { router.replace(...) }` guard —
+  // the layout already prevents this screen being reachable when signed in
+  if (!isSignInLoaded || !email.trim() || !password) {
+    showToast("error", "Missing details", "Enter your email and password.");
+    return;
+  }
+  setBusy(true);
+  try {
+    const result = await signIn.create({ identifier: email.trim(), password });
+    if (result.status !== "complete" || !result.createdSessionId) {
+      showToast("error", "Sign in incomplete", "Clerk requires another sign-in step before continuing.");
       return;
     }
-    setBusy(true);
-    try {
-      const result = await signIn.create({ identifier: email.trim(), password });
-      await finishSession(result.createdSessionId);
-    } catch (error) {
-      Alert.alert("Sign in failed", getErrorMessage(error));
-    } finally {
-      setBusy(false);
+    await finishSession(result.createdSessionId, setSignInActive);
+  } catch (error) {
+    if (isAlreadySignedInError(error)) {
+      const recovered = await activateExistingSession();
+      if (!recovered) {
+        showToast("error", "Session needs attention", "Clerk has an existing session, but it could not be restored. Restart the app and try again.");
+      }
+      return;
     }
-  };
+    showToast("error", "Sign in failed", getErrorMessage(error));
+  } finally {
+    setBusy(false);
+  }
+};
 
   const handleSignUp = async () => {
     if (!isSignUpLoaded || !email.trim() || !password || !name.trim()) {
-      Alert.alert("Missing details", "Enter your name, email, and password.");
+      showToast("error", "Missing details", "Enter your name, email, and password.");
       return;
     }
     setBusy(true);
@@ -76,41 +118,51 @@ const AuthScreen = () => {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setMode("verifySignUp");
     } catch (error) {
-      Alert.alert("Sign up failed", getErrorMessage(error));
+      showToast("error", "Sign up failed", getErrorMessage(error));
     } finally {
       setBusy(false);
     }
   };
 
   const verifySignUp = async () => {
-    if (!isSignUpLoaded || code.trim().length < 4) {
-      Alert.alert("Enter your code", "Enter the verification code sent to your email.");
+  if (!isSignUpLoaded || code.trim().length < 4) {
+    showToast("error", "Enter your code", "Enter the verification code sent to your email.");
+    return;
+  }
+  setBusy(true);
+  try {
+    const result = await signUp.attemptEmailAddressVerification({ code: code.trim() });
+    if (result.status !== "complete" || !result.createdSessionId) {
+      console.warn("Clerk sign-up is incomplete", {
+        status: result.status,
+        missingFields: result.missingFields,
+        unverifiedFields: result.unverifiedFields,
+      });
+      showToast("error", "Verification incomplete", getSignupRequirementMessage(result));
       return;
     }
-    setBusy(true);
-    try {
-      const result = await signUp.attemptEmailAddressVerification({ code: code.trim() });
-      await finishSession(result.createdSessionId);
-    } catch (error) {
-      Alert.alert("Verification failed", getErrorMessage(error));
-    } finally {
-      setBusy(false);
-    }
-  };
+    showToast("success", "Email verified", "Your account is ready.");
+    await finishSession(result.createdSessionId, setSignUpActive);
+  } catch (error) {
+    showToast("error", "Verification failed", getErrorMessage(error));
+  } finally {
+    setBusy(false);
+  }
+};
 
   const resendSignUpCode = async () => {
     if (!isSignUpLoaded) return;
     try {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      Alert.alert("Code sent", "A new verification code is on its way.");
+      showToast("success", "Code sent", "A new verification code is on its way.");
     } catch (error) {
-      Alert.alert("Could not resend code", getErrorMessage(error));
+      showToast("error", "Could not resend code", getErrorMessage(error));
     }
   };
 
   const sendResetCode = async () => {
     if (!isSignInLoaded || !email.trim()) {
-      Alert.alert("Enter your email", "Enter the email connected to your account.");
+      showToast("error", "Enter your email", "Enter the email connected to your account.");
       return;
     }
     setBusy(true);
@@ -123,7 +175,7 @@ const AuthScreen = () => {
       await signIn.prepareFirstFactor({ strategy: "reset_password_email_code", emailAddressId: emailFactor.emailAddressId });
       setMode("verifyReset");
     } catch (error) {
-      Alert.alert("Could not send code", getErrorMessage(error));
+      showToast("error", "Could not send code", getErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -131,7 +183,7 @@ const AuthScreen = () => {
 
   const verifyResetCode = async () => {
     if (!isSignInLoaded || code.trim().length < 4) {
-      Alert.alert("Enter your code", "Enter the reset code sent to your email.");
+      showToast("error", "Enter your code", "Enter the reset code sent to your email.");
       return;
     }
     setBusy(true);
@@ -139,33 +191,38 @@ const AuthScreen = () => {
       await signIn.attemptFirstFactor({ strategy: "reset_password_email_code", code: code.trim() });
       setMode("resetPassword");
     } catch (error) {
-      Alert.alert("Verification failed", getErrorMessage(error));
+      showToast("error", "Verification failed", getErrorMessage(error));
     } finally {
       setBusy(false);
     }
   };
 
   const resetPassword = async () => {
-    if (!isSignInLoaded || password.length < 8) {
-      Alert.alert("Password too short", "Your new password must be at least 8 characters.");
+  if (!isSignInLoaded || password.length < 8) {
+    showToast("error", "Password too short", "Your new password must be at least 8 characters.");
+    return;
+  }
+  setBusy(true);
+  try {
+    const result = await signIn.resetPassword({ password });
+    if (result.status !== "complete" || !result.createdSessionId) {
+      showToast("error", "Reset incomplete", "Clerk requires another step before finishing the reset.");
       return;
     }
-    setBusy(true);
-    try {
-      const result = await signIn.resetPassword({ password });
-      await finishSession(result.createdSessionId);
-    } catch (error) {
-      Alert.alert("Could not reset password", getErrorMessage(error));
-    } finally {
-      setBusy(false);
-    }
-  };
+    showToast("success", "Password updated", "You're signed in with your new password.");
+    await finishSession(result.createdSessionId, setSignInActive);
+  } catch (error) {
+    showToast("error", "Could not reset password", getErrorMessage(error));
+  } finally {
+    setBusy(false);
+  }
+};
 
   const isVerification = mode === "verifySignUp" || mode === "verifyReset";
   const isForm = mode === "signIn" || mode === "signUp" || mode === "forgot";
   const title = mode === "signUp" ? "Create your account" : mode === "forgot" ? "Reset your password" : mode === "resetPassword" ? "Choose a new password" : isVerification ? "Check your email" : "Welcome back";
   const submit = mode === "signIn" ? handleSignIn : mode === "signUp" ? handleSignUp : mode === "forgot" ? sendResetCode : mode === "verifySignUp" ? verifySignUp : mode === "verifyReset" ? verifyResetCode : resetPassword;
-  const submitLabel = mode === "signIn" ? "Sign in" : mode === "signUp" ? "Create account" : mode === "forgot" ? "Send reset code" : isVerification ? "Verify code" : "Update password";
+  const submitLabel = mode === "signIn" ? "Sign In" : mode === "signUp" ? "Create Account" : mode === "forgot" ? "Send Reset Code" : isVerification ? "Verify Code" : "Update Password";
 
   return (
     <ImageBackground source={require("../../assets/images/auth-image.png")} className="flex-1" resizeMode="cover">
@@ -181,7 +238,7 @@ const AuthScreen = () => {
               {mode === "signIn" || mode === "signUp" ? (
                 <View className="mt-5 flex-row rounded-xl bg-gray-100 p-1">
                   <Pressable className={`flex-1 rounded-lg py-3 ${mode === "signIn" ? "bg-white" : ""}`} onPress={() => resetForm("signIn")}>
-                    <Text className="text-center font-semibold text-gray-800">Sign in</Text>
+                    <Text className="text-center font-semibold text-gray-800">Sign In</Text>
                   </Pressable>
                   <Pressable className={`flex-1 rounded-lg py-3 ${mode === "signUp" ? "bg-white" : ""}`} onPress={() => resetForm("signUp")}>
                     <Text className="text-center font-semibold text-gray-800">Sign up</Text>
@@ -207,7 +264,7 @@ const AuthScreen = () => {
               {mode === "resetPassword" ? <AuthInput icon="lock-closed-outline" placeholder="New password" value={password} onChangeText={setPassword} secureTextEntry /> : null}
               {isVerification ? <AuthInput icon="keypad-outline" placeholder="Verification code" value={code} onChangeText={setCode} keyboardType="number-pad" /> : null}
 
-              <Pressable className="mt-5 rounded-xl bg-[#4F2B50] py-4" onPress={submit} disabled={busy}>
+              <Pressable className="mt-5 rounded-xl bg-[#4F2B50] py-4" onPress={() => void submit()} disabled={busy}>
                 {busy ? <ActivityIndicator color="white" /> : <Text className="text-center text-base font-bold text-white">{submitLabel}</Text>}
               </Pressable>
 

@@ -4,13 +4,18 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { StyleSheet } from "react-native";
+import useCurrentUser from "@/hooks/useCurrentUser";
 
 const TabsLayout = () => {
   const { isSignedIn, isLoaded } = useAuth();
+  const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
   const insets = useSafeAreaInsets();
 
-  if (!isLoaded) return null; // for a better ux
+  if (!isLoaded || (isSignedIn && isUserLoading)) return null;
   if (!isSignedIn) return <Redirect href={"/(auth)"} />;
+  if (currentUser?.role === "vendor" || currentUser?.role === "admin") {
+    return <Redirect href="/vendor" />;
+  }
 
   return (
     <Tabs
@@ -23,7 +28,7 @@ const TabsLayout = () => {
           borderTopWidth: 0,
           height: 32 + insets.bottom,
           paddingTop: 4,
-          marginHorizontal: 100,
+          marginHorizontal: 24,
           marginBottom: insets.bottom,
           borderRadius: 24,
           overflow: "hidden",
@@ -56,6 +61,13 @@ const TabsLayout = () => {
         options={{
           title: "Cart",
           tabBarIcon: ({ color, size }) => <Ionicons name="cart" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: "Search",
+          tabBarIcon: ({ color, size }) => <Ionicons name="search" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

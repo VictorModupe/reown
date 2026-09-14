@@ -1,4 +1,4 @@
-import { requireAuth } from "@clerk/express";
+import { clerkClient, requireAuth } from "@clerk/express";
 import { User } from "../models/user.model.js";
 import { ENV } from "../config/env.js";
 
@@ -9,8 +9,26 @@ export const protectRoute = [
       const clerkId = req.auth().userId;
       if (!clerkId) return res.status(401).json({ message: "Unauthorized - invalid token" });
 
-      const user = await User.findOne({ clerkId });
-      if (!user) return res.status(404).json({ message: "User not found" });
+      let user = await User.findOne({ clerkId });
+      if (!user) {
+        const clerkUser = await clerkClient.users.getUser(clerkId);
+        const email = clerkUser.emailAddresses[0]?.emailAddress;
+        if (!email) return res.status(400).json({ message: "Your account has no email address" });
+
+        user = await User.findOneAndUpdate(
+          { clerkId },
+          {
+            clerkId,
+            email,
+            name: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || "User",
+            imageUrl: clerkUser.imageUrl,
+            role: clerkUser.unsafeMetadata?.role === "vendor" ? "vendor" : "customer",
+            addresses: [],
+            wishlist: [],
+          },
+          { new: true, upsert: true, setDefaultsOnInsert: true }
+        );
+      }
 
       req.user = user;
 
