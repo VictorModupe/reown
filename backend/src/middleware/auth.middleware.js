@@ -22,7 +22,7 @@ export const protectRoute = [
             email,
             name: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || "User",
             imageUrl: clerkUser.imageUrl,
-            role: clerkUser.unsafeMetadata?.role === "vendor" ? "vendor" : "customer",
+            role: "customer",
             addresses: [],
             wishlist: [],
           },

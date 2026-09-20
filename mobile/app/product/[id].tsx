@@ -117,6 +117,7 @@ const ProductDetailScreen = () => {
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            scrollEventThrottle={16}
             onScroll={(e) => {
               const index = Math.round(e.nativeEvent.contentOffset.x / width);
               setSelectedImageIndex(index);

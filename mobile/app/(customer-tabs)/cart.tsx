@@ -10,10 +10,14 @@ import { Image } from "expo-image";
 import OrderSummary from "@/components/OrderSummary";
 import AddressSelectionModal from "@/components/AddressSelectionModal";
 import Toast from "react-native-toast-message";
-import { FlutterwaveCheckout } from "flutterwave-react-native";
+import { PayWithFlutterwave } from "flutterwave-react-native";
+import type { RedirectParams } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
 
 const CartScreen = () => {
   const api = useApi();
+  const queryClient = useQueryClient();
   const {
     cart,
     cartItemCount,
@@ -30,7 +34,7 @@ const CartScreen = () => {
 
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [addressModalVisible, setAddressModalVisible] = useState(false);
-  const [flutterwaveLink, setFlutterwaveLink] = useState<string | null>(null);
+  const [paymentOptions, setPaymentOptions] = useState<React.ComponentProps<typeof PayWithFlutterwave>["options"] | null>(null);
 
   const cartItems = cart?.items || [];
   const subtotal = cartTotal;
@@ -41,6 +45,7 @@ const CartScreen = () => {
   const handleQuantityChange = (productId: string, currentQuantity: number, change: number) => {
     const newQuantity = currentQuantity + change;
     if (newQuantity < 1) return;
+    setPaymentOptions(null);
     updateQuantity({ productId, quantity: newQuantity });
   };
 
@@ -50,7 +55,10 @@ const CartScreen = () => {
       {
         text: "Remove",
         style: "destructive",
-        onPress: () => removeFromCart(productId),
+        onPress: () => {
+          setPaymentOptions(null);
+          removeFromCart(productId);
+        },
       },
     ]);
   };
@@ -63,7 +71,10 @@ const CartScreen = () => {
       Alert.alert(
         "No Address",
         "Please add a shipping address in your profile before checking out.",
-        [{ text: "OK" }]
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Add address", onPress: () => router.push("/addresses") },
+        ]
       );
       return;
     }
@@ -91,7 +102,7 @@ const CartScreen = () => {
       };
 
       const { data } = await api.post("/payment/flutterwave", { cartItems, shippingAddress });
-      setFlutterwaveLink(data.paymentLink);
+      setPaymentOptions(data.options);
     } catch (error: any) {
       Toast.show({
         type: "error",
@@ -103,8 +114,8 @@ const CartScreen = () => {
     }
   };
 
-  const handleFlutterwaveRedirect = async (result: { status: string; transaction_id?: string }) => {
-    setFlutterwaveLink(null);
+  const handleFlutterwaveRedirect = async (result: RedirectParams) => {
+    setPaymentOptions(null);
     if (result.status !== "successful" || !result.transaction_id) {
       Toast.show({ type: "error", text1: "Payment cancelled", text2: "No payment was completed." });
       return;
@@ -114,6 +125,7 @@ const CartScreen = () => {
     try {
       await api.post("/payment/flutterwave/verify", { transactionId: result.transaction_id });
       clearCart();
+      await queryClient.invalidateQueries({ queryKey: ["orders"] });
       Toast.show({ type: "success", text1: "Payment successful", text2: "Your order is being prepared." });
     } catch (error: any) {
       Toast.show({ type: "error", text1: "Payment verification failed", text2: error?.response?.data?.error || "Please contact support." });
@@ -237,23 +249,43 @@ const CartScreen = () => {
         </View>
 
         {/* Checkout Button */}
-        <TouchableOpacity
-          className="bg-primary rounded-2xl overflow-hidden"
-          activeOpacity={0.9}
-          onPress={handleCheckout}
-          disabled={paymentLoading}
-        >
-          <View className="py-5 flex-row items-center justify-center">
-            {paymentLoading ? (
-              <ActivityIndicator size="small" color="#8264A9" />
-            ) : (
-              <>
-                <Text className="text-background font-bold text-lg mr-2">Checkout</Text>
-                <Ionicons name="arrow-forward" size={20} color="#8264A9" />
-              </>
+        {paymentOptions ? (
+          <PayWithFlutterwave
+            options={paymentOptions}
+            onRedirect={handleFlutterwaveRedirect}
+            onAbort={() => setPaymentOptions(null)}
+            customButton={(props) => (
+              <TouchableOpacity
+                className="bg-primary rounded-2xl overflow-hidden"
+                activeOpacity={0.9}
+                onPress={props.onPress}
+                disabled={props.disabled || paymentLoading}
+              >
+                <View className="py-5 flex-row items-center justify-center">
+                  {paymentLoading ? (
+                    <ActivityIndicator size="small" color="#8264A9" />
+                  ) : (
+                    <>
+                      <Text className="text-background font-bold text-lg mr-2">Pay ${total.toFixed(2)}</Text>
+                      <Ionicons name="arrow-forward" size={20} color="#8264A9" />
+                    </>
+                  )}
+                </View>
+              </TouchableOpacity>
             )}
-          </View>
-        </TouchableOpacity>
+          />
+        ) : (
+          <TouchableOpacity
+            className="bg-primary rounded-2xl overflow-hidden"
+            activeOpacity={0.9}
+            onPress={handleCheckout}
+            disabled={paymentLoading}
+          >
+            <View className="py-5 flex-row items-center justify-center">
+              {paymentLoading ? <ActivityIndicator size="small" color="#8264A9" /> : <Text className="text-background font-bold text-lg">Checkout</Text>}
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
 
       <AddressSelectionModal
@@ -261,12 +293,6 @@ const CartScreen = () => {
         onClose={() => setAddressModalVisible(false)}
         onProceed={handleProceedWithPayment}
         isProcessing={paymentLoading}
-      />
-      <FlutterwaveCheckout
-        visible={Boolean(flutterwaveLink)}
-        link={flutterwaveLink ?? undefined}
-        onRedirect={handleFlutterwaveRedirect}
-        onAbort={() => setFlutterwaveLink(null)}
       />
     </SafeScreen>
   );

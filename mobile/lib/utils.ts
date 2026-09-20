@@ -1,4 +1,13 @@
-//C:\Users\USER\Downloads\reown-app\reown\mobile\lib\utils.ts
+import * as SecureStore from "expo-secure-store";
+
+export const storeAccessToken = async (token: string): Promise<void> => { 
+  try { 
+    await SecureStore.setItemAsync("access_token", token); 
+  } catch (error) { 
+    console.error("Error saving to secure store:", error); 
+  } 
+};
+
 export const capitalizeFirstLetter = (text: string) => {
   return text.charAt(0).toUpperCase() + text.slice(1);
 };

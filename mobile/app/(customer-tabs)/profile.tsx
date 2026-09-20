@@ -6,25 +6,27 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
-import useCurrentUser from "@/hooks/useCurrentUser";
+import { useQueryClient } from "@tanstack/react-query";
 
 const MENU_ITEMS = [
   { id: 1, icon: "person-outline", title: "Edit Profile", color: "#3B82F6", action: "/profile" },
   { id: 2, icon: "list-outline", title: "Orders", color: "#10B981", action: "/orders" },
   { id: 3, icon: "location-outline", title: "Addresses", color: "#F59E0B", action: "/addresses" },
   { id: 4, icon: "heart-outline", title: "Wishlist", color: "#EF4444", action: "/wishlist" },
-  { id: 5, icon: "pricetag-outline", title: "My Offers", color: "#8B5CF6", action: "../(profile)/offers" },
+  { id: 5, icon: "pricetag-outline", title: "My Offers", color: "#8B5CF6", action: "/offers" },
 ] as const;
 
 const ProfileScreen = () => {
   const { signOut } = useAuth();
   const { user } = useUser();
   const { isDark, toggleTheme } = useTheme();
-  const { data: currentUser } = useCurrentUser();
+  const queryClient = useQueryClient();
 
-  const handleMenuPress = (action: (typeof MENU_ITEMS)[number]["action"]) => {
-    if (action === "/profile") return;
-    router.push(action);
+  const handleMenuPress = (action: (typeof MENU_ITEMS)[number]["action"]) => router.push(action);
+
+  const handleSignOut = async () => {
+    queryClient.clear();
+    await signOut();
   };
 
   return (
@@ -82,25 +84,12 @@ const ProfileScreen = () => {
           ))}
         </View>
 
-        {(currentUser?.role === "vendor" || currentUser?.role === "admin") && (
-          <TouchableOpacity
-            className="mx-6 mb-3 bg-primary rounded-2xl p-5 flex-row items-center justify-between"
-            onPress={() => router.push("/vendor")}
-          >
-            <View>
-              <Text className="text-background font-bold text-lg">Vendor workspace</Text>
-              <Text className="text-background/70 mt-1">Manage products and orders</Text>
-            </View>
-            <Ionicons name="storefront-outline" size={26} color="#121212" />
-          </TouchableOpacity>
-        )}
-
         {/* NOTIFICATIONS BTN */}
         <View className="mb-3 mx-6 bg-surface rounded-2xl p-4">
           <TouchableOpacity
             className="flex-row items-center justify-between py-2"
             activeOpacity={0.7}
-            onPress={() => router.push("../(profile)/offers")}
+            onPress={() => router.push("/offers")}
           >
             <View className="flex-row items-center">
               <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
@@ -143,7 +132,7 @@ const ProfileScreen = () => {
         <TouchableOpacity
           className="mx-6 mb-3 bg-surface rounded-2xl py-5 flex-row items-center justify-center border-2 border-red-500"
           activeOpacity={0.8}
-          onPress={() => signOut()}
+          onPress={() => void handleSignOut()}
         >
           <Ionicons name="log-out-outline" size={22} color="#EF4444" />
           <Text className="text-red-500 font-bold text-base ml-2">Sign Out</Text>

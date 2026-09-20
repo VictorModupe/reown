@@ -4,19 +4,13 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { StyleSheet } from "react-native";
-import useCurrentUser from "@/hooks/useCurrentUser";
 
 const TabsLayout = () => {
   const { isSignedIn, isLoaded } = useAuth();
-  const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
   const insets = useSafeAreaInsets();
 
-  if (!isLoaded || (isSignedIn && isUserLoading)) return null;
+  if (!isLoaded) return null;
   if (!isSignedIn) return <Redirect href={"/(auth)"} />;
-  if (currentUser?.role === "vendor" || currentUser?.role === "admin") {
-    return <Redirect href="/vendor" />;
-  }
-
   return (
     <Tabs
       screenOptions={{
@@ -44,7 +38,7 @@ const TabsLayout = () => {
         ),
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: 600,
+          fontWeight: "600",
         },
         headerShown: false,
       }}

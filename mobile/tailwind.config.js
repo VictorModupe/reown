@@ -6,6 +6,9 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
+      fontFamily: {
+        kenao: ['Kenao', 'sans-serif'],
+      },
       colors: {
         primary: {
           DEFAULT: "#F0E5F1", // spotify green

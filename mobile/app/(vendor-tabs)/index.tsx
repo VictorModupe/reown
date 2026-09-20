@@ -1,7 +1,6 @@
 import ProductsGrid from "@/components/ProductsGrid";
 import SafeScreen from "@/components/SafeScreen";
 import useProducts from "@/hooks/useProducts";
-import useCurrentUser from "@/hooks/useCurrentUser";
 
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
@@ -20,7 +19,6 @@ const ShopScreen = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const { data: products, isLoading, isError, error } = useProducts();
-  const { data: currentUser } = useCurrentUser();
 
   const filteredProducts = useMemo(() => {
     if (!products) return [];
@@ -53,10 +51,10 @@ const ShopScreen = () => {
         <View className="px-6 pb-4 pt-6">
           <View className="flex-row items-center justify-between mb-6">
             <View>
-              <Text className="text-text-primary text-3xl font-bold tracking-tight montersarrat">REOWN</Text>
+              <Text className="text-text-primary text-3xl font-bold tracking-tight">FOU</Text>
               <Text className="text-text-secondary text-sm mt-1">Browse all products</Text>
               <Text className="mt-2 self-start rounded-full bg-primary/20 px-3 py-1 text-xs font-bold uppercase text-primary">
-                {currentUser?.role === "admin" ? "Admin" : "Customer"} dashboard
+                Vendor Dashboard
               </Text>
             </View>
 

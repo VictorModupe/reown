@@ -1,4 +1,5 @@
 import { ENV } from "../config/env.js";
+import { Cart } from "../models/cart.model.js";
 import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
 
@@ -8,14 +9,15 @@ export async function createFlutterwavePayment(req, res) {
       return res.status(503).json({ error: "Flutterwave is not configured. Set FLUTTERWAVE_SECRET_KEY in backend/.env." });
     }
 
-    const { cartItems, shippingAddress } = req.body;
-    if (!cartItems?.length) return res.status(400).json({ error: "Cart is empty" });
+    const { shippingAddress } = req.body;
+    const cart = await Cart.findOne({ user: req.user._id }).populate("items.product");
+    if (!cart?.items?.length) return res.status(400).json({ error: "Cart is empty" });
 
     let subtotal = 0;
     const orderItems = [];
-    for (const item of cartItems) {
-      const product = await Product.findById(item.product._id);
-      if (!product) return res.status(404).json({ error: `Product ${item.product.name} not found` });
+    for (const item of cart.items) {
+      const product = item.product;
+      if (!product) return res.status(404).json({ error: "A product in your cart no longer exists" });
       if (product.stock < item.quantity) return res.status(400).json({ error: `Insufficient stock for ${product.name}` });
       subtotal += product.price * item.quantity;
       orderItems.push({ product: product._id, name: product.name, price: product.price, quantity: item.quantity, image: product.images[0] });
@@ -23,22 +25,23 @@ export async function createFlutterwavePayment(req, res) {
 
     const total = subtotal + 10 + subtotal * 0.08;
     const user = req.user;
-    const response = await fetch("https://api.flutterwave.com/v3/payments", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${ENV.FLUTTERWAVE_SECRET_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tx_ref: `reown-${user._id}-${Date.now()}`,
-        amount: total.toFixed(2),
+    if (!ENV.FLUTTERWAVE_PUBLIC_KEY) {
+      return res.status(503).json({ error: "Flutterwave public key is not configured." });
+    }
+
+    const txRef = `reown-${user._id}-${Date.now()}`;
+    return res.status(200).json({
+      options: {
+        authorization: ENV.FLUTTERWAVE_PUBLIC_KEY,
+        tx_ref: txRef,
+        amount: Number(total.toFixed(2)),
         currency: "USD",
-        redirect_url: "https://flutterwave.com/rn-redirect",
-        customer: { email: user.email, name: user.name },
+        payment_options: "card,banktransfer,ussd",
+        customer: { email: user.email, name: user.name, phonenumber: shippingAddress.phoneNumber },
         customizations: { title: "Reown checkout" },
         meta: { userId: user._id.toString(), clerkId: user.clerkId, orderItems, shippingAddress, totalPrice: total.toFixed(2) },
-      }),
+      },
     });
-    const result = await response.json();
-    if (!response.ok || result.status !== "success") return res.status(502).json({ error: result.message || "Unable to start Flutterwave checkout" });
-    return res.status(200).json({ paymentLink: result.data.link });
   } catch (error) {
     console.error("Error creating Flutterwave payment:", error);
     return res.status(500).json({ error: "Failed to create Flutterwave payment" });

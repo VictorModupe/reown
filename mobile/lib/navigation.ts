@@ -1,13 +1,13 @@
 export type UserRole = "customer" | "vendor" | "admin";
 
-export const getDashboardRoute = (role?: UserRole | string | null) => {
+export const getDashboardRoute = (role?: UserRole | string | null): "/(customer-tabs)" | "/(vendor-tabs)" => {
   switch (role) {
     case "vendor":
-      return "/(vendor)";
+      return "/(vendor-tabs)";
     case "admin":
-      return "/(admin)"; // adjust to your actual admin route group
+      return "/(vendor-tabs)";
     case "customer":
     default:
-      return "/(tabs)";
+      return "/(customer-tabs)";
   }
 };

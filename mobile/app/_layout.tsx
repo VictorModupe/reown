@@ -1,39 +1,41 @@
-//C:\Users\USER\Downloads\reown-app\reown\mobile\app\_layout.tsx
-
 import { Stack } from "expo-router";
 import "../global.css";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
-import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { StyleSheet, Text, View } from "react-native";
-import { useTheme } from "@/contexts/ThemeContext";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
-
-const queryClient = new QueryClient({
-  queryCache: new QueryCache({
-    onError: (error: any) => console.error("Query error:", error),
-  }),
-  mutationCache: new MutationCache({
-    onError: (error: any) => console.error("Mutation error:", error),
-  }),
-});
+import { useEffect } from "react";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
+import Providers from "@/config/providers";
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Kenao: require("../assets/fonts/Kenao.otf"),
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) SplashScreen.hideAsync();
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) return null;
   return (
-    <ClerkProvider 
-    publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}
-    tokenCache={tokenCache}
-    taskUrls={{
-      "choose-organization": "/(auth)",
-      "reset-password": "/(auth)",
-      "setup-mfa": "/(auth)",
-    }}>
-      <ThemeProvider>
-        <ThemeRoot />
-      </ThemeProvider>
-      <Toast config={toastConfig} topOffset={56} />
-    </ClerkProvider>
+      <ClerkProvider
+        publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        tokenCache={tokenCache}
+        taskUrls={{
+          "choose-organization": "/(auth)",
+          "reset-password": "/(auth)",
+          "setup-mfa": "/(auth)",
+        }}>
+        <ThemeProvider>
+          <ThemeRoot />
+        </ThemeProvider>
+        <Toast config={toastConfig} topOffset={56} />
+      </ClerkProvider>
   );
 }
 
@@ -75,9 +77,17 @@ function ThemeRoot() {
 
   return (
     <View className="flex-1" style={themeVariables}>
-      <QueryClientProvider client={queryClient}>
+      <GestureHandlerRootView>
+      <Providers>
         <Stack screenOptions={{ headerShown: false }} />
-      </QueryClientProvider>
-    </View>
+        <Stack.Screen name="onboarding/onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="(routes)" options={{ headerShown: false }} />
+        <Stack.Screen name="(vendor-tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(customer-tabs)" options={{ headerShown: false }} />
+      </Providers>
+      </GestureHandlerRootView>
+
+
+        </View>
   );
 }
