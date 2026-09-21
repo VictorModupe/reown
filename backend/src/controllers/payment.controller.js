@@ -65,6 +65,15 @@ export async function verifyFlutterwavePayment(req, res) {
 
     const metadata = transaction.meta || {};
     if (metadata.userId !== req.user._id.toString()) return res.status(403).json({ error: "Payment user mismatch" });
+    if (transaction.currency !== "USD" || Number(transaction.amount) !== Number(metadata.totalPrice)) {
+      return res.status(400).json({ error: "Flutterwave payment amount or currency mismatch" });
+    }
+    if (!transaction.tx_ref || !transaction.tx_ref.startsWith(`reown-${req.user._id}-`)) {
+      return res.status(400).json({ error: "Flutterwave transaction reference mismatch" });
+    }
+    if (!Array.isArray(metadata.orderItems) || metadata.orderItems.length === 0 || !metadata.shippingAddress) {
+      return res.status(400).json({ error: "Flutterwave payment metadata is incomplete" });
+    }
     const existingOrder = await Order.findOne({ "paymentResult.id": String(transaction.id) });
     if (existingOrder) return res.status(200).json({ orderId: existingOrder._id, status: "success" });
 

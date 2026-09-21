@@ -3,6 +3,7 @@ import useWishlist from "@/hooks/useWishlist";
 import { Product } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useAuth } from "@clerk/clerk-expo";
 import {
   View,
   Text,
@@ -26,8 +27,17 @@ const ProductsGrid = ({ products, isLoading, isError, error }: ProductsGridProps
     useWishlist();
 
   const { isAddingToCart, addToCart } = useCart();
+  const { isSignedIn } = useAuth();
 
   const handleAddToCart = (productId: string, productName: string) => {
+    if (!isSignedIn) {
+      Alert.alert("Sign in required", "Please sign in before adding items to your cart.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Sign in", onPress: () => router.push("/(routes)/login") },
+      ]);
+      return;
+    }
+
     addToCart(
       { productId, quantity: 1 },
       {
@@ -93,7 +103,10 @@ const ProductsGrid = ({ products, isLoading, isError, error }: ProductsGridProps
           <TouchableOpacity
             className="bg-primary rounded-full w-8 h-8 items-center justify-center"
             activeOpacity={0.7}
-            onPress={() => handleAddToCart(product._id, product.name)}
+            onPress={(event) => {
+              event.stopPropagation();
+              handleAddToCart(product._id, product.name);
+            }}
             disabled={isAddingToCart}
           >
             {isAddingToCart ? (

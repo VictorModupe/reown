@@ -9,6 +9,7 @@ import axios, { AxiosError as AxiosErrorType, isAxiosError } from 'axios';
 import { toast } from 'sonner-native';
 import * as SecureStore from "expo-secure-store"
 import { storeAccessToken } from "@/lib/utils";
+import useSocialAuth from "@/hooks/useSocialAuth";
 
 interface LoginFormData {
     email: string;
@@ -56,6 +57,7 @@ const loginUser = async (userData: LoginFormData) => {
 export default function LoginScreen() {
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
+    const { loadingStrategy, handleSocialAuth } = useSocialAuth();
 
     const loginForm = useForm<LoginFormData>({
         mode: "onChange",
@@ -86,7 +88,7 @@ export default function LoginScreen() {
             if (data?.accessToken) {
                 await storeAccessToken(data.accessToken);
             }
-            router.replace("/(tabs)");
+            router.replace("/(customer-tabs)");
 
             if (data?.refreshToken) {
                 await SecureStore.setItemAsync("refresh_token", data.refreshToken);
@@ -252,10 +254,10 @@ export default function LoginScreen() {
                             {/* Google Login Button */}
                             <TouchableOpacity
                                 className="w-6 h-6 mr-3"
-                                onPress={() => console.log("Google Login Pressed")}
-                                disabled={loginMutation.isPending}
+                                onPress={() => handleSocialAuth("oauth_google")}
+                                disabled={loginMutation.isPending || loadingStrategy !== null}
                             >
-                                <Ionicons name="logo-google" size={20} color="#DB4437" />
+                                <Ionicons name="logo-google" size={20} color="#4F2B50" />
                                 <Text className="ml-2 text-gray-700 font-kenao-medium text-sm">
                                     Google
                                 </Text>
@@ -264,8 +266,8 @@ export default function LoginScreen() {
                             {/* Apple Login Button */}
                             <TouchableOpacity
                                 className="flex-1 flex-row items-center justify-center bg-black rounded-xl py-3 px-4"
-                                onPress={() => console.log("Apple Login Pressed")}
-                                disabled={loginMutation.isPending}
+                                onPress={() => handleSocialAuth("oauth_apple")}
+                                disabled={loginMutation.isPending || loadingStrategy !== null}
                             >
                                 <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
                                 <Text className="ml-2 text-white font-kenao-medium text-sm">

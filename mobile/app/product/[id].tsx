@@ -6,6 +6,7 @@ import { useCreateOffer } from "@/hooks/useOffers";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
+import { useAuth } from "@clerk/clerk-expo";
 import { useState } from "react";
 import {
   View,
@@ -25,6 +26,7 @@ const ProductDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: product, isError, isLoading } = useProduct(id);
   const { addToCart, isAddingToCart } = useCart();
+  const { isSignedIn } = useAuth();
 
   const { isInWishlist, toggleWishlist, isAddingToWishlist, isRemovingFromWishlist } =
     useWishlist();
@@ -38,6 +40,14 @@ const ProductDetailScreen = () => {
 
   const handleAddToCart = () => {
     if (!product) return;
+    if (!isSignedIn) {
+      Alert.alert("Sign in required", "Please sign in before adding items to your cart.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Sign in", onPress: () => router.push("/(routes)/login") },
+      ]);
+      return;
+    }
+
     addToCart(
       { productId: product._id, quantity },
       {

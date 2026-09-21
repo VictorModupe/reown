@@ -27,9 +27,9 @@ export default function RootLayout() {
         publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}
         tokenCache={tokenCache}
         taskUrls={{
-          "choose-organization": "/(auth)",
-          "reset-password": "/(auth)",
-          "setup-mfa": "/(auth)",
+          "choose-organization": "/(routes)/login",
+          "reset-password": "/(routes)/login",
+          "setup-mfa": "/(routes)/login",
         }}>
         <ThemeProvider>
           <ThemeRoot />

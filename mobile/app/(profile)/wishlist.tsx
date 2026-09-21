@@ -1,6 +1,7 @@
 import SafeScreen from "@/components/SafeScreen";
 import useCart from "@/hooks/useCart";
 import useWishlist from "@/hooks/useWishlist";
+import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
@@ -11,6 +12,7 @@ function WishlistScreen() {
     useWishlist();
 
   const { addToCart, isAddingToCart } = useCart();
+  const { isSignedIn } = useAuth();
 
   const handleRemoveFromWishlist = (productId: string, productName: string) => {
     Alert.alert("Remove from wishlist", `Remove ${productName} from wishlist`, [
@@ -25,6 +27,14 @@ function WishlistScreen() {
   };
 
   const handleAddToCart = (productId: string, productName: string) => {
+    if (!isSignedIn) {
+      Alert.alert("Sign in required", "Please sign in before adding items to your cart.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Sign in", onPress: () => router.push("/(routes)/login") },
+      ]);
+      return;
+    }
+
     addToCart(
       { productId, quantity: 1 },
       {
@@ -64,7 +74,7 @@ function WishlistScreen() {
           <TouchableOpacity
             className="bg-primary rounded-2xl px-8 py-4 mt-6"
             activeOpacity={0.8}
-            onPress={() => router.push("/(tabs)")}
+            onPress={() => router.push("/(customer-tabs)")}
           >
             <Text className="text-background font-bold text-base">Browse Products</Text>
           </TouchableOpacity>

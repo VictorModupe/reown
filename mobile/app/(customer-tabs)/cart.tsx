@@ -253,7 +253,19 @@ const CartScreen = () => {
           <PayWithFlutterwave
             options={paymentOptions}
             onRedirect={handleFlutterwaveRedirect}
-            onAbort={() => setPaymentOptions(null)}
+            onAbort={() => {
+              setPaymentOptions(null);
+              setPaymentLoading(false);
+            }}
+            onInitializeError={(error) => {
+              setPaymentOptions(null);
+              setPaymentLoading(false);
+              Toast.show({
+                type: "error",
+                text1: "Payment could not start",
+                text2: error.message || "Please try again.",
+              });
+            }}
             customButton={(props) => (
               <TouchableOpacity
                 className="bg-primary rounded-2xl overflow-hidden"

@@ -10,7 +10,7 @@ const TabsLayout = () => {
   const insets = useSafeAreaInsets();
 
   if (!isLoaded) return null;
-  if (!isSignedIn) return <Redirect href={"/(auth)"} />;
+  if (!isSignedIn) return <Redirect href="/(routes)/login" />;
   return (
     <Tabs
       screenOptions={{

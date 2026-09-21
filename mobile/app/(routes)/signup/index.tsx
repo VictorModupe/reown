@@ -15,6 +15,8 @@ import { useRouter } from 'expo-router';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError as AxiosErrorType } from 'axios';
 import { toast } from 'sonner-native';
+import useSocialAuth from "@/hooks/useSocialAuth";
+
 
 interface SignUpFormData {
     name: string;
@@ -59,6 +61,7 @@ export default function SignUpScreen() {
     // All hooks must be called inside the component
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
+    const { loadingStrategy, handleSocialAuth } = useSocialAuth();
 
     const signupForm = useForm<SignUpFormData>({
         mode: 'onChange',
@@ -285,8 +288,8 @@ export default function SignUpScreen() {
                     <View className="space-y-4 mb-8">
                         <TouchableOpacity
                             className="flex-1 flex-row items-center justify-center bg-white rounded-xl py-3 px-4"
-                            onPress={() => console.log('Google sign up pressed')}
-                            disabled={signupMutation.isPending}
+                            onPress={() => handleSocialAuth("oauth_google", "customer")}
+                            disabled={signupMutation.isPending || loadingStrategy !== null}
                         >
                             <Ionicons name="logo-google" size={20} color="#DB4437" />
                             <Text className="ml-2 text-gray-700 font-kenao-medium text-sm">
@@ -296,8 +299,8 @@ export default function SignUpScreen() {
 
                         <TouchableOpacity
                             className="flex-1 flex-row items-center justify-center bg-black rounded-xl py-3 px-4"
-                            onPress={() => console.log('Apple sign up pressed')}
-                            disabled={signupMutation.isPending}
+                            onPress={() => handleSocialAuth("oauth_apple", "customer")}
+                            disabled={signupMutation.isPending || loadingStrategy !== null}
                         >
                             <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
                             <Text className="ml-2 text-white font-kenao-medium text-sm">
@@ -305,6 +308,7 @@ export default function SignUpScreen() {
                             </Text>
                         </TouchableOpacity>
                     </View>
+                    
 
                     {/* Sign in link */}
                     <View className="flex-row justify-center items-center mt-4 mb-12">

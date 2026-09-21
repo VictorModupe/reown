@@ -23,6 +23,10 @@ const useCart = () => {
 
   const addToCartMutation = useMutation({
     mutationFn: async ({ productId, quantity = 1 }: { productId: string; quantity?: number }) => {
+      if (!isSignedIn) {
+        throw new Error("Please sign in before adding items to your cart.");
+      }
+
       const { data } = await api.post<{ cart: Cart }>("/cart", { productId, quantity });
       return data.cart;
     },

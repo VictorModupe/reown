@@ -1,5 +1,5 @@
 
-import { useSSO } from "@clerk/clerk-expo";
+import { useAuth, useSSO } from "@clerk/clerk-expo";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
@@ -15,6 +15,7 @@ export type RequestedRole = "customer" | "vendor";
 export default function useSocialAuth() {
   const [loadingStrategy, setLoadingStrategy] = useState<SocialStrategy | null>(null);
   const { startSSOFlow } = useSSO();
+  const { isSignedIn } = useAuth();
 
   // Faster browser start on Android.
   useEffect(() => {
@@ -28,6 +29,14 @@ export default function useSocialAuth() {
   const handleSocialAuth = useCallback(
     async (strategy: SocialStrategy, role?: RequestedRole) => {
       if (loadingStrategy) return;
+      if (isSignedIn) {
+        Toast.show({
+          type: "error",
+          text1: "Already signed in",
+          text2: "Sign out before starting another social sign-in.",
+        });
+        return;
+      }
       setLoadingStrategy(strategy);
 
       try {
@@ -43,7 +52,13 @@ export default function useSocialAuth() {
           // (auth)/_layout sees the signed-in state and redirects to the right dashboard.
           await setActive({ session: createdSessionId });
         }
-        // No session and no error usually means the person closed the browser: stay silent.
+        if (!createdSessionId) {
+          Toast.show({
+            type: "error",
+            text1: "Sign in incomplete",
+            text2: "Finish the verification steps and try again.",
+          });
+        }
       } catch (error: any) {
         Toast.show({
           type: "error",
@@ -58,7 +73,7 @@ export default function useSocialAuth() {
         setLoadingStrategy(null);
       }
     },
-    [loadingStrategy, startSSOFlow]
+    [isSignedIn, loadingStrategy, startSSOFlow]
   );
 
   return { loadingStrategy, handleSocialAuth };
