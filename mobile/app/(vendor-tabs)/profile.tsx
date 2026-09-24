@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useQueryClient } from "@tanstack/react-query";
+import Toast from "react-native-toast-message";
 
 const MENU_ITEMS = [
   { id: 1, icon: "person-outline", title: "Edit Profile", color: "#3B82F6", action: "/profile" },
@@ -27,6 +28,12 @@ const ProfileScreen = () => {
   const handleSignOut = async () => {
     queryClient.clear();
     await signOut();
+    Toast.show({
+      type: "success",
+      text1: "Signed out",
+      text2: "You have been signed out successfully.",
+    });
+    router.replace("/(routes)/login");
   };
 
   return (

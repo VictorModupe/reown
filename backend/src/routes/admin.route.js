@@ -11,9 +11,9 @@ import {
   getVendors,
   updateUserRole,
 } from "../controllers/admin.controller.js";
-import { getVendorOffers, updateOfferStatus } from "../controllers/offer.controller.js";
 import { adminOnly, protectRoute, vendorOrAdmin } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/multer.middleware.js";
+import { getVendorOffers, updateOfferStatus } from "../controllers/offer.controller.js";
 
 const router = Router();
 

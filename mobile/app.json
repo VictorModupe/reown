@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "reown",
-    "slug": "reown",
+    "name": "reown-tester",
+    "slug": "fou",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -55,8 +55,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "6182a2ad-2499-40e3-bcd1-b8dd92f0cd1f"
+        "projectId": "b7408611-a642-4d9c-a59f-459b3dfe41c1"
       }
-    }
+    },
+    "owner": "reown-tester"
   }
 }

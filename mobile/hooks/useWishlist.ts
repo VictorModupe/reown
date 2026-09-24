@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/lib/api";
 import { Product } from "@/types";
+import { useAuth } from "@clerk/clerk-expo";
 
 const useWishlist = () => {
   const api = useApi();
   const queryClient = useQueryClient();
+  const { isSignedIn } = useAuth();
 
   const {
     data: wishlist,
@@ -16,6 +18,7 @@ const useWishlist = () => {
       const { data } = await api.get<{ wishlist: Product[] }>("/users/wishlist");
       return data.wishlist;
     },
+    enabled: isSignedIn,
   });
 
   const addToWishlistMutation = useMutation({

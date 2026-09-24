@@ -59,7 +59,7 @@ const ShopScreen = () => {
             </View>
 
             <TouchableOpacity className="bg-surface/50 p-3 rounded-full" activeOpacity={0.7}>
-              <Ionicons name="options-outline" size={22} color={"#F0E5F1"} />
+              <Ionicons name="person-outline" size={22} color={"#F0E5F1"} />
             </TouchableOpacity>
           </View>
 

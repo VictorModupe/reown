@@ -4,12 +4,12 @@ import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function OnboardingScreen() {
-    const handleGetStarted = () => router.replace("/(customer-tabs)");
-    const handleLoginAsVendor = () => router.replace("/(routes)/login");
+    const handleContinueAsVendor = () => router.replace("/(routes)/login");
+    const handleContinueAsGuest = () => router.replace("/(customer-tabs)");
 
     return (
         <ImageBackground
-            source={require("../assets/onboarding/auth-image.png")}
+            source={require("../../assets/images/auth-image.png")}
             style={styles.container}
             resizeMode="cover"
         >
@@ -27,7 +27,7 @@ export default function OnboardingScreen() {
 
                 <TouchableOpacity
                     style={styles.button}
-                    onPress={handleGetStarted}
+                    onPress={handleContinueAsVendor}
                     accessibilityRole="button"
                 >
                     <LinearGradient
@@ -36,13 +36,13 @@ export default function OnboardingScreen() {
                         end={{ x: 1, y: 1 }}
                         style={styles.buttonGradient}
                     >
-                        <Text style={styles.buttonText}>Continue as a Customer</Text>
+                        <Text style={styles.buttonText}>Continue to Vendor Login</Text>
                     </LinearGradient>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     style={styles.button}
-                    onPress={handleLoginAsVendor}
+                    onPress={handleContinueAsGuest}
                     accessibilityRole="button"
                 >
                     <LinearGradient
@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
                         style={styles.buttonGradient}
                     >
                         <Text style={[styles.buttonText, styles.buttonTextDark]}>
-                            Sign in as a Vendor
+                            Continue as a Customer
                         </Text>
                     </LinearGradient>
                 </TouchableOpacity>
@@ -71,6 +71,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingBottom: 50,
         paddingHorizontal: 20,
+        
     },
     title: {
         fontSize: 32,
@@ -78,6 +79,7 @@ const styles = StyleSheet.create({
         color: "#F0E5F1",
         marginBottom: 10,
         textAlign: "center",
+        fontFamily: "Kenao",
     },
     subtitle: {
         fontSize: 16,
@@ -85,6 +87,7 @@ const styles = StyleSheet.create({
         marginBottom: 30,
         textAlign: "center",
         opacity: 0.8,
+        fontFamily: "Kenao",
     },
     button: {
         width: "100%",
@@ -101,8 +104,10 @@ const styles = StyleSheet.create({
         color: "#F0E5F1",
         fontSize: 18,
         fontWeight: "bold",
+        fontFamily: "Kenao",
     },
     buttonTextDark: {
         color: "#4F2B50",
+        fontFamily: "Kenao",
     },
 });

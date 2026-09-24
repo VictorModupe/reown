@@ -28,7 +28,7 @@ api.interceptors.response.use(
   },
   (error) => {
     const config = error.config as (typeof error.config & { __startedAt?: number }) | undefined;
-    console.error("[api:error]", {
+    console.warn("[api:error]", {
       method: config?.method?.toUpperCase(),
       url: config?.url,
       status: error.response?.status,

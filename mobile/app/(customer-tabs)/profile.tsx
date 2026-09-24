@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useQueryClient } from "@tanstack/react-query";
+import Toast from "react-native-toast-message";
 
 const MENU_ITEMS = [
   { id: 1, icon: "person-outline", title: "Edit Profile", color: "#3B82F6", action: "/profile" },
@@ -17,16 +18,28 @@ const MENU_ITEMS = [
 ] as const;
 
 const ProfileScreen = () => {
-  const { signOut } = useAuth();
+  const { isSignedIn, signOut } = useAuth();
   const { user } = useUser();
   const { isDark, toggleTheme } = useTheme();
   const queryClient = useQueryClient();
 
-  const handleMenuPress = (action: (typeof MENU_ITEMS)[number]["action"]) => router.push(action);
+  const handleMenuPress = (action: (typeof MENU_ITEMS)[number]["action"]) => {
+    if (action === "/orders" && !isSignedIn) {
+      router.push("/(routes)/login");
+      return;
+    }
+    router.push(action);
+  };
 
   const handleSignOut = async () => {
     queryClient.clear();
     await signOut();
+    Toast.show({
+      type: "success",
+      text1: "Signed out",
+      text2: "You have been signed out successfully.",
+    });
+    router.replace("/(routes)/login");
   };
 
   return (
@@ -129,14 +142,14 @@ const ProfileScreen = () => {
         </View>
 
         {/* SIGNOUT BTN */}
-        <TouchableOpacity
+        {isSignedIn ? <TouchableOpacity
           className="mx-6 mb-3 bg-surface rounded-2xl py-5 flex-row items-center justify-center border-2 border-red-500"
           activeOpacity={0.8}
           onPress={() => void handleSignOut()}
         >
           <Ionicons name="log-out-outline" size={22} color="#EF4444" />
           <Text className="text-red-500 font-bold text-base ml-2">Sign Out</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> : null}
 
         <Text className="mx-6 mb-3 text-center text-text-secondary text-xs">Version 1.0.0</Text>
       </ScrollView>

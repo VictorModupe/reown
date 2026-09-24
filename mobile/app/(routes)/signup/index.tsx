@@ -6,14 +6,14 @@ import {
     ScrollView,
     TextInput,
     TouchableOpacity,
+    ImageBackground,
 } from 'react-native';
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Controller, useForm } from 'react-hook-form';
 import { useRouter } from 'expo-router';
-import { useMutation } from '@tanstack/react-query';
-import axios, { AxiosError as AxiosErrorType } from 'axios';
+import { useSignUp } from '@clerk/clerk-expo';
 import { toast } from 'sonner-native';
 import useSocialAuth from "@/hooks/useSocialAuth";
 
@@ -24,43 +24,11 @@ interface SignUpFormData {
     password: string;
 }
 
-const signupUser = async (userData: SignUpFormData) => {
-    try {
-        const response = await axios.post(
-            `${process.env.EXPO_PUBLIC_API_URL}/auth/api/signup`,
-            userData
-        );
-        return response.data;
-    } catch (error) {
-        if (AxiosError(error)) {
-            if (!error.response) {
-                throw new Error('Network error. Please check your connection.');
-            }
-
-            const status = error?.response?.status;
-            const errorData = error?.response?.data;
-            const message = (errorData as { message?: string })?.message;
-
-            if (status === 400 || status === 422) {
-                throw new Error(
-                    (errorData as { message?: string })?.message ||
-                    'Invalid input data'
-                );
-            } else if (status === 409) {
-                throw new Error(message || 'User already exists');
-            } else if (status >= 500) {
-                throw new Error(message || 'Server error. Please try again later.');
-            }
-            throw new Error(message || 'Sign up failed');
-        }
-        throw new Error('Something went wrong. Please try again.');
-    }
-};
-
 export default function SignUpScreen() {
     // All hooks must be called inside the component
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
+    const { isLoaded, signUp } = useSignUp();
     const { loadingStrategy, handleSocialAuth } = useSocialAuth();
 
     const signupForm = useForm<SignUpFormData>({
@@ -72,35 +40,48 @@ export default function SignUpScreen() {
         },
     });
 
-    const signupMutation = useMutation({
-        mutationFn: signupUser,
-        onSuccess: (data, variables) => {
-            router.replace({
-                pathname: '../signup-otp',
-                params: {
-                    name: variables.name,
-                    email: variables?.email,
-                    password: variables.password,
-                },
-            });
-        },
-        onError: (error: Error) => {
-            toast.error(error?.message);
-        },
-    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const handleSignInNavigation = () => {
-        router.push('../login');
+        router.push('/(routes)/login');
     };
 
-    const onSignUpSubmit = (data: SignUpFormData) => {
-        signupMutation.mutate(data);
+    const onSignUpSubmit = async ({ name, email, password }: SignUpFormData) => {
+        if (!isLoaded || !signUp) return;
+        setIsSubmitting(true);
+        try {
+            await signUp.create({
+                emailAddress: email,
+                password,
+                firstName: name,
+                unsafeMetadata: { role: "vendor" },
+            });
+            await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+            router.replace("/(routes)/signup-otp");
+        } catch (error: any) {
+            toast.error(error?.errors?.[0]?.longMessage || error?.message || "Unable to create account");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // const { errors, isValid } = form.formState;
-    // const isBusy = signupMutation.isPending;
 
     return (
-        <SafeAreaView className="flex-1 bg-[#8264A9]">
+        <ImageBackground
+            source={require('../../../assets/images/auth-image.png')}
+            resizeMode="cover"
+            className="flex-1"
+        >
+            <View className="absolute inset-0 bg-black/45" />
+            <SafeAreaView className="flex-1">
+            <TouchableOpacity
+                className="px-6 pt-2"
+                onPress={() => router.replace("/onboarding")}
+                accessibilityRole="button"
+                accessibilityLabel="Back to onboarding"
+            >
+                <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 className="flex-1"
@@ -111,11 +92,11 @@ export default function SignUpScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     {/* Header */}
-                    <View className="mt-16 mb-8">
-                        <Text className="text-3xl font-kenao text-gray-800 mb-2">
+                    <View className="mt-8 mb-8">
+                        <Text className="text-3xl font-kenao text-white mb-2">
                             Create your account
                         </Text>
-                        <Text className="text-gray-700 text-base font-kenao">
+                        <Text className="text-white/75 text-base font-kenao">
                             Sign up to get started
                         </Text>
                     </View>
@@ -124,7 +105,7 @@ export default function SignUpScreen() {
                     <View className="gap-6 mt-8">
                         {/* Full name */}
                         <View>
-                            <Text className="text-gray-800 text-base font-kenao mb-3">Name</Text>
+                            <Text className="text-white text-base font-kenao mb-3">Name</Text>
                             <Controller
                                 control={signupForm.control}
                                 name="name"
@@ -163,7 +144,7 @@ export default function SignUpScreen() {
 
                         {/* Email */}
                         <View>
-                            <Text className="text-gray-800 text-base font-kenao mb-3">Email</Text>
+                            <Text className="text-white text-base font-kenao mb-3">Email</Text>
                             <Controller
                                 control={signupForm.control}
                                 name="email"
@@ -204,7 +185,7 @@ export default function SignUpScreen() {
 
                         {/* Password */}
                         <View>
-                            <Text className="text-gray-800 text-base font-kenao mb-3">
+                            <Text className="text-white text-base font-kenao mb-3">
                                 Password
                             </Text>
                             <Controller
@@ -235,7 +216,7 @@ export default function SignUpScreen() {
                                             onChangeText={onChange}
                                             onBlur={onBlur}
                                             secureTextEntry={!showPassword}
-                                            editable={!signupMutation.isPending}
+                                            editable={!isSubmitting}
                                         />
                                         {signupForm.formState.errors.password && (
                                             <Text className="text-red-500 text-small font-kenao ml-2">
@@ -244,7 +225,7 @@ export default function SignUpScreen() {
                                         )}
                                         <TouchableOpacity
                                             onPress={() => setShowPassword(!showPassword)}
-                                            disabled={signupMutation.isPending}
+                                            disabled={isSubmitting}
                                         >
                                             <Ionicons
                                                 name={showPassword ? 'eye-outline' : 'eye-off-outline'}
@@ -268,10 +249,10 @@ export default function SignUpScreen() {
                         className={`rounded-xl py-4 mt-8 ${signupForm.formState.isValid ? 'bg-[#8264A9]' : 'bg-gray-400'
                             }`}
                         onPress={signupForm.handleSubmit(onSignUpSubmit)}
-                        disabled={!signupForm.formState.isValid || signupMutation.isPending}
+                        disabled={!signupForm.formState.isValid || isSubmitting}
                     >
                         <Text className="text-white text-center text-lg font-kenao">
-                            {signupMutation.isPending
+                            {isSubmitting
                                 ? 'Creating Account...'
                                 : 'Create Account'}
                         </Text>
@@ -280,30 +261,30 @@ export default function SignUpScreen() {
                     {/* Divider */}
                     <View className="flex-row items-center my-8">
                         <View className="flex-1 h-px bg-gray-300" />
-                        <Text className="mx-4 text-gray-700 font-kenao">Or continue with</Text>
+                        <Text className="mx-4 text-purple-300 font-kenao">Or continue with</Text>
                         <View className="flex-1 h-px bg-gray-300" />
                     </View>
 
                     {/* Social buttons */}
-                    <View className="space-y-4 mb-8">
+                    <View className="gap-3 mb-8">
                         <TouchableOpacity
-                            className="flex-1 flex-row items-center justify-center bg-white rounded-xl py-3 px-4"
-                            onPress={() => handleSocialAuth("oauth_google", "customer")}
-                            disabled={signupMutation.isPending || loadingStrategy !== null}
+                            className="w-full flex-row items-center justify-center bg-white rounded-xl py-3 px-4"
+                            onPress={() => handleSocialAuth("oauth_google", "vendor")}
+                            disabled={isSubmitting || loadingStrategy !== null}
                         >
-                            <Ionicons name="logo-google" size={20} color="#DB4437" />
+                            <Ionicons name="logo-google" size={20} color="#8264A9" />
                             <Text className="ml-2 text-gray-700 font-kenao-medium text-sm">
                                 Google
                             </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            className="flex-1 flex-row items-center justify-center bg-black rounded-xl py-3 px-4"
-                            onPress={() => handleSocialAuth("oauth_apple", "customer")}
-                            disabled={signupMutation.isPending || loadingStrategy !== null}
+                            className="w-full flex-row items-center justify-center bg-black rounded-xl py-3 px-4"
+                            onPress={() => handleSocialAuth("oauth_apple", "vendor")}
+                            disabled={isSubmitting || loadingStrategy !== null}
                         >
                             <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
-                            <Text className="ml-2 text-white font-kenao-medium text-sm">
+                            <Text className="ml-2 text-white font-kenao text-sm">
                                 Apple
                             </Text>
                         </TouchableOpacity>
@@ -312,21 +293,18 @@ export default function SignUpScreen() {
 
                     {/* Sign in link */}
                     <View className="flex-row justify-center items-center mt-4 mb-12">
-                        <Text className="text-gray-800 font-kenao text-sm">
+                        <Text className="text-white/75 font-kenao text-sm">
                             Already have an account?{' '}
                         </Text>
-                        <TouchableOpacity onPress={handleSignInNavigation} disabled={signupMutation.isPending}>
-                            <Text className="text-white font-kenao-semibold text-sm underline">
+                        <TouchableOpacity onPress={handleSignInNavigation} disabled={isSubmitting}>
+                            <Text className="text-[#e6cfff] font-kenao text-sm">
                                 Sign In
                             </Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+            </SafeAreaView>
+        </ImageBackground>
     );
-}
-
-function AxiosError(error: unknown): error is AxiosErrorType {
-    return axios.isAxiosError(error);
 }

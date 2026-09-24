@@ -14,8 +14,10 @@ import { PayWithFlutterwave } from "flutterwave-react-native";
 import type { RedirectParams } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
+import { useAuth } from "@clerk/clerk-expo";
 
 const CartScreen = () => {
+  const { isSignedIn } = useAuth();
   const api = useApi();
   const queryClient = useQueryClient();
   const {
@@ -65,6 +67,14 @@ const CartScreen = () => {
 
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
+
+    if (!isSignedIn) {
+      Alert.alert("Sign in required", "Please sign in before completing your purchase.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Sign in", onPress: () => router.push("/(routes)/login") },
+      ]);
+      return;
+    }
 
     // check if user has addresses
     if (!addresses || addresses.length === 0) {

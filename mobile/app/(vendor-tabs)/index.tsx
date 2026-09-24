@@ -5,6 +5,7 @@ import useProducts from "@/hooks/useProducts";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, TextInput } from "react-native";
+import { router } from "expo-router";
 
 const CATEGORIES = [
   { name: "All", icon: "grid-outline" as const },
@@ -112,6 +113,15 @@ const ShopScreen = () => {
           <ProductsGrid products={filteredProducts} isLoading={isLoading} isError={isError} error={error} />
         </View>
       </ScrollView>
+      <TouchableOpacity
+        onPress={() => router.push("/product/create")}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Add product"
+        className="absolute bottom-8 right-6 h-16 w-16 items-center justify-center rounded-full bg-primary shadow-lg"
+      >
+        <Ionicons name="add" size={30} color="#8264A9" />
+      </TouchableOpacity>
     </SafeScreen>
   );
 };

@@ -1,16 +1,12 @@
-import { Redirect, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@clerk/clerk-expo";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import { StyleSheet } from "react-native";
 
 const TabsLayout = () => {
-  const { isSignedIn, isLoaded } = useAuth();
   const insets = useSafeAreaInsets();
 
-  if (!isLoaded) return null;
-  if (!isSignedIn) return <Redirect href="/(routes)/login" />;
   return (
     <Tabs
       screenOptions={{

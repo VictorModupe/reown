@@ -19,3 +19,24 @@ export const useCreateOffer = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["offers"] }),
   });
 };
+
+export const useVendorOffers = () => {
+  const api = useApi();
+  return useQuery<Offer[]>({
+    queryKey: ["vendor-offers"],
+    queryFn: async () => (await api.get<{ offers: Offer[] }>("/offers/vendor")).data.offers,
+  });
+};
+
+export const useUpdateOfferStatus = () => {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ offerId, status }: { offerId: string; status: "accepted" | "rejected" }) =>
+      (await api.patch<{ offer: Offer }>(`/offers/${offerId}`, { status })).data.offer,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendor-offers"] });
+      queryClient.invalidateQueries({ queryKey: ["offers"] });
+    },
+  });
+};

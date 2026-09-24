@@ -1,6 +1,5 @@
 import { Stack } from "expo-router";
 import "../global.css";
-import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
@@ -23,19 +22,19 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) return null;
   return (
-      <ClerkProvider
-        publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}
-        tokenCache={tokenCache}
-        taskUrls={{
-          "choose-organization": "/(routes)/login",
-          "reset-password": "/(routes)/login",
-          "setup-mfa": "/(routes)/login",
-        }}>
-        <ThemeProvider>
-          <ThemeRoot />
-        </ThemeProvider>
-        <Toast config={toastConfig} topOffset={56} />
-      </ClerkProvider>
+    <ClerkProvider
+      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      tokenCache={tokenCache}
+      taskUrls={{
+        "choose-organization": "/(routes)/login",
+        "reset-password": "/(routes)/login",
+        "setup-mfa": "/(routes)/login",
+      }}>
+      <ThemeProvider>
+        <ThemeRoot />
+      </ThemeProvider>
+      <Toast config={toastConfig} topOffset={56} />
+    </ClerkProvider>
   );
 }
 
@@ -61,6 +60,7 @@ const toastConfig = {
 };
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   toast: { alignSelf: "center", width: "90%", flexDirection: "row", alignItems: "center", padding: 14, borderRadius: 18, borderWidth: 1, shadowColor: "#1d1620", shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 8 },
   successToast: { backgroundColor: "#fffaf2", borderColor: "#f0d7a7" },
   errorToast: { backgroundColor: "#fff6f5", borderColor: "#efb8b2" },
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   iconText: { color: "#fff", fontSize: 18, fontWeight: "800" },
   copy: { flex: 1, marginLeft: 11 },
   title: { color: "#241b26", fontSize: 15, fontWeight: "800" },
-  message: { color: "#756875", fontSize: 13, marginTop: 2 },
+  message: { color: "#241b26", fontSize: 13, marginTop: 2 },
 });
 
 function ThemeRoot() {
@@ -77,17 +77,17 @@ function ThemeRoot() {
 
   return (
     <View className="flex-1" style={themeVariables}>
-      <GestureHandlerRootView>
-      <Providers>
-        <Stack screenOptions={{ headerShown: false }} />
-        <Stack.Screen name="onboarding/onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="(routes)" options={{ headerShown: false }} />
-        <Stack.Screen name="(vendor-tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(customer-tabs)" options={{ headerShown: false }} />
-      </Providers>
+      <GestureHandlerRootView style={styles.root}>
+        <Providers>
+          <Stack initialRouteName="onboarding/index" screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="onboarding/index" />
+            {/* <Stack.Screen name="(customer-tabs)" />
+            <Stack.Screen name="(vendor-tabs)" /> */}
+          </Stack>
+        </Providers>
       </GestureHandlerRootView>
 
 
-        </View>
+    </View>
   );
 }

@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApi } from "@/lib/api";
 import { Address } from "@/types";
+import { useAuth } from "@clerk/clerk-expo";
 
 export const useAddresses = () => {
   const api = useApi();
   const queryClient = useQueryClient();
+  const { isSignedIn } = useAuth();
 
   const {
     data: addresses,
@@ -16,6 +18,7 @@ export const useAddresses = () => {
       const { data } = await api.get<{ addresses: Address[] }>("/users/addresses");
       return data.addresses;
     },
+    enabled: isSignedIn,
   });
 
   const addAddressMutation = useMutation({
